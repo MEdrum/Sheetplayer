@@ -1,8 +1,9 @@
 import { error, json } from "@sveltejs/kit";
+import { env } from "$env/dynamic/private";
 import { isSettings, SettingsStore } from "$lib/server/settings";
 import type { RequestHandler } from "./$types";
 
-const store = new SettingsStore();
+const store = new SettingsStore(env.DATA_DIR ?? "./data");
 
 export const GET: RequestHandler = async ({ locals }) => json(await store.get(locals.sessionId));
 

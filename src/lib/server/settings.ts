@@ -1,6 +1,5 @@
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { env } from "$env/dynamic/private";
 import type { Settings } from "$lib/types";
 
 export const defaultSettings: Settings = {
@@ -26,7 +25,7 @@ export function isSettings(value: unknown): value is Settings {
 }
 
 export class SettingsStore {
-  constructor(private readonly directory = env.DATA_DIR ?? "./data") {}
+  constructor(private readonly directory = "./data") {}
 
   async get(sessionId: string): Promise<Settings> {
     try {
