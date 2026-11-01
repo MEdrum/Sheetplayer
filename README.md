@@ -14,6 +14,16 @@ npm run dev
 
 Set `NEXTCLOUD_SHARE_URL` to a public, read-only Nextcloud share ending in `/s/<token>`. The server uses the share's recursive WebDAV `PROPFIND` endpoint and never writes to the share.
 
+## Docker deployment
+
+Copy `.env.example` to `.env`, set `NEXTCLOUD_SHARE_URL`, and start the production container:
+
+```sh
+docker compose up -d --build
+```
+
+The application is available at `http://localhost:3000` by default. Settings persist in the named `sheetplayer-data` volume. Stop it with `docker compose down`; use `docker compose down -v` only when intentionally deleting stored settings.
+
 ## Architecture
 
 - SvelteKit server routes provide `GET /api/catalog` and `GET|PUT|DELETE /api/settings`.
@@ -34,10 +44,12 @@ npm run preview
 
 ## Deployment
 
-Build with `npm ci && npm run build`, then run `node build` behind a TLS-terminating reverse proxy. Persist `DATA_DIR`; do not expose it as a static directory.
+Build with `npm ci && npm run build`, then run `node build` behind a TLS-terminating reverse proxy. Alternatively use `docker compose up -d --build`. Persist `DATA_DIR`; do not expose it as a static directory.
 
 Browser tests cover both a 1440px desktop viewport and an iPhone 13 viewport. They verify that primary controls remain visible and that the responsive layout does not introduce horizontal overflow.
 
 ## Current limitations
 
 Catalog discovery supports `.musicxml`, `.xml`, `.mxl`, and `.mscz`, with newest-first ordering and deterministic path fallback when timestamps are unavailable. A notation engine and audio playback engine still need to be selected and integrated; the UI labels this boundary instead of claiming unsupported rendering. Cross-device synchronization is intentionally deferred pending approval of pairing, recovery, conflict, and revocation behavior.
+
+The implementation status is tracked in [`PARITY.md`](./PARITY.md). It is not yet a complete score player: notation rendering, audio playback, and score-specific controls remain follow-up work. The initial scope intentionally excludes local uploads and paid or hosted conversion services.
