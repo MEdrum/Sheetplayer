@@ -45,7 +45,11 @@ export function webDavUrl(shareUrl: string): URL {
 }
 
 export function parseDavResponse(xml: string): Score[] {
-  const parsed = new XMLParser({ ignoreAttributes: false, removeNSPrefix: true }).parse(xml);
+  const parsed = new XMLParser({
+    ignoreAttributes: false,
+    removeNSPrefix: true,
+    processEntities: false
+  }).parse(xml);
   const responses = parsed.multistatus?.response ?? [];
   const entries = Array.isArray(responses) ? responses : [responses];
   return sortScores(entries.flatMap((entry) => {
