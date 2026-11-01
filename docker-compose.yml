@@ -1,0 +1,23 @@
+services:
+  sheetplayer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sheetplayer:local
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      ORIGIN: ${ORIGIN:-http://localhost:3000}
+      DATA_DIR: /app/data
+      NEXTCLOUD_SHARE_URL: ${NEXTCLOUD_SHARE_URL:-}
+      NEXTCLOUD_POLL_MS: ${NEXTCLOUD_POLL_MS:-300000}
+      NEXTCLOUD_TIMEOUT_MS: ${NEXTCLOUD_TIMEOUT_MS:-15000}
+    volumes:
+      - sheetplayer-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  sheetplayer-data:

@@ -1,0 +1,10 @@
+.git
+.gitignore
+.env
+agent_files
+node_modules
+.svelte-kit
+build
+data
+test-results
+coverage
