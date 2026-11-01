@@ -5,7 +5,6 @@ export const handle: Handle = async ({ event, resolve }) => {
   const existing = event.cookies.get("sheetplayer_session");
   const sessionId = existing && /^[a-f0-9]{64}$/.test(existing) ? existing : randomBytes(32).toString("hex");
   event.locals.sessionId = sessionId;
-  const response = await resolve(event);
   if (!existing) {
     event.cookies.set("sheetplayer_session", sessionId, {
       path: "/",
@@ -14,5 +13,5 @@ export const handle: Handle = async ({ event, resolve }) => {
       httpOnly: true
     });
   }
-  return response;
+  return resolve(event);
 };
