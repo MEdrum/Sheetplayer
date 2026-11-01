@@ -4,3 +4,4 @@ build/
 data/
 .env
 agent_files/
+test-results/
