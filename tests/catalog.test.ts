@@ -23,6 +23,12 @@ describe("catalog discovery", () => {
     expect(score.size).toBe(42);
   });
 
+  it("parses WebDAV XML with repeated entity declarations safely", () => {
+    const entities = Array.from({ length: 1001 }, (_, index) => `<!ENTITY e${index} "value">`).join("");
+    const xml = `<?xml version="1.0"?><!DOCTYPE multistatus [${entities}]><d:multistatus xmlns:d="DAV:"><d:response><d:href>/song.mscz</d:href></d:response></d:multistatus>`;
+    expect(parseDavResponse(xml)[0].name).toBe("song.mscz");
+  });
+
   it("maps a public share to its WebDAV endpoint", () => {
     expect(webDavUrl("https://cloud.example.test/s/share-token").pathname)
       .toBe("/public.php/dav/files/share-token");
