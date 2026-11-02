@@ -3,6 +3,7 @@ import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises"
 import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { unzipSync, strFromU8 } from "fflate";
 import { env } from "$env/dynamic/private";
 import { fetchCatalog, webDavUrl } from "./catalog";
 import type { Score } from "$lib/types";
@@ -118,6 +119,15 @@ export async function getMusicXml(score: Score): Promise<string> {
   if (score.format === "musicxml") {
     const source = await downloadSource(env.NEXTCLOUD_SHARE_URL!, score.path);
     return source.toString("utf8");
+  }
+  if (score.format === "mxl") {
+    const source = await downloadSource(env.NEXTCLOUD_SHARE_URL!, score.path);
+    const archive = unzipSync(source);
+    const container = archive["META-INF/container.xml"];
+    const rootFile = container ? /full-path="([^"]+)"/.exec(strFromU8(container))?.[1] : undefined;
+    const musicXml = rootFile ? archive[rootFile] : Object.entries(archive).find(([name]) => /\.(musicxml|xml)$/i.test(name))?.[1];
+    if (!musicXml) throw new Error("The MXL archive does not contain a MusicXML document.");
+    return strFromU8(musicXml);
   }
   const entry = await ensureEntry(score, true);
   if (!entry) throw new Error(`Unsupported score format: ${score.format}`);
