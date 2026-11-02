@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from "./$types";
-  import type { Score, Settings } from "$lib/types";
+  import type { AudioSource, Score, Settings } from "$lib/types";
+  import { RecordedVoiceEngine } from "$lib/client/audio-engine";
   import { onMount } from "svelte";
 
   export let data: PageData;
@@ -12,8 +13,10 @@
   let playing = false;
   let catalogLoaded = false;
   let scoreHost: HTMLDivElement;
-  let renderer: { destroy?: () => void } | null = null;
+  let renderer: { destroy?: () => void; play?: () => boolean; pause?: () => void } | null = null;
   let renderError = "";
+  let audioError = "";
+  let audioEngine: RecordedVoiceEngine | null = null;
   const voices = ["soprano", "mezzo", "alto", "tenor", "bass"];
 
   $: visibleScores = scores.filter((score) => score.name.toLowerCase().includes(query.trim().toLowerCase()));
@@ -28,10 +31,43 @@
       const api = new AlphaTabApi(scoreHost, { player: { enablePlayer: true, enableCursor: true } });
       api.load(`/api/scores/${score.id}/musicxml`);
       renderer = api;
+      audioEngine?.destroy();
+      audioEngine = new RecordedVoiceEngine();
+      await Promise.all(voices.map(async (voice) => {
+        try {
+          await audioEngine!.load([{ voice, url: `/api/scores/${score.id}/audio/${voice}` }]);
+        } catch {
+          // A missing voice recording is valid; virtual playback remains available.
+        }
+      }));
     } catch (error) {
       renderError = error instanceof Error ? error.message : "The score could not be rendered.";
     }
-  }
+
+    }
+
+    function sourceFor(voice: string): AudioSource {
+      return settings.voiceMixes[voice] ?? settings.globalAudioSource;
+    }
+
+    async function togglePlayback() {
+      if (!renderer || !selected) return;
+      audioError = "";
+      try {
+        const hasRecorded = voices.some((voice) => sourceFor(voice) === "recorded");
+        const hasVirtual = voices.some((voice) => sourceFor(voice) === "virtual");
+        if (playing) {
+          renderer.pause?.();
+          audioEngine?.pause();
+        } else {
+          if (hasRecorded) await audioEngine?.play(settings.voiceMixes, settings.voiceVolumes);
+          if (hasVirtual) renderer.play?.();
+        }
+        playing = !playing;
+      } catch (error) {
+        audioError = error instanceof Error ? error.message : "Audio playback could not start.";
+      }
+    }
 
   async function loadCatalog() {
     try {
@@ -107,6 +143,7 @@
     {#if selected}
       <div class="score">
         {#if renderError}<p class="error">{renderError}</p>{/if}
+        {#if audioError}<p class="error">{audioError}</p>{/if}
         <div class="notation" bind:this={scoreHost}></div>
         <p class="notice">{selected.format.toUpperCase()} · notation and lyrics are rendered client-side.</p>
       </div>
@@ -114,7 +151,7 @@
       <div class="empty">Select a score from the catalog to begin.</div>
     {/if}
     <div class="controls">
-      <button type="button" disabled={!selected} on:click={() => (playing = !playing)}>{playing ? "❚❚ Pause" : "▶ Play"}</button>
+      <button type="button" disabled={!selected} on:click={togglePlayback}>{playing ? "❚❚ Pause" : "▶ Play"}</button>
       <label for="tempo">Tempo <input id="tempo" bind:value={settings.tempo} on:change={saveSettings} type="range" min="20" max="300" /><output>{settings.tempo} BPM</output></label>
       <label for="audio-source">All voices
         <select id="audio-source" bind:value={settings.globalAudioSource} on:change={saveSettings}>

@@ -8,6 +8,7 @@ export interface Score {
   modifiedAt: string | null;
   size: number | null;
   ready: boolean;
+  audioTracks?: Record<string, string>;
 }
 
 export type VoiceId = "soprano" | "mezzo" | "alto" | "tenor" | "bass" | string;

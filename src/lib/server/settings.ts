@@ -24,7 +24,10 @@ export function isSettings(value: unknown): value is Settings {
     && Array.isArray(settings.emphasizedVoices)
     && settings.emphasizedVoices.every((voice) => typeof voice === "string")
     && Array.isArray(settings.mutedVoices)
-    && settings.mutedVoices.every((voice) => typeof voice === "string");
+    && settings.mutedVoices.every((voice) => typeof voice === "string")
+    && !!settings.voiceMixes
+    && typeof settings.voiceMixes === "object"
+    && Object.values(settings.voiceMixes).every((source) => source === "virtual" || source === "recorded" || source === "muted");
 }
 
 export class SettingsStore {
