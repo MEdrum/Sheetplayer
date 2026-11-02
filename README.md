@@ -26,6 +26,8 @@ docker compose up -d --build
 
 The application is available at `http://localhost:3000` by default. Settings persist in the named `sheetplayer-data` volume. Stop it with `docker compose down`; use `docker compose down -v` only when intentionally deleting stored settings.
 
+The production image includes MuseScore 3 for server-side MSCZ-to-MusicXML conversion. This makes the image larger than the browser-only development setup. For a host installation, set `MUSESCORE_BIN` to a compatible MuseScore executable.
+
 ## Architecture
 
 - SvelteKit server routes provide `GET /api/catalog` and `GET|PUT|DELETE /api/settings`.

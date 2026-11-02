@@ -15,6 +15,7 @@ services:
       NEXTCLOUD_SHARE_URL: ${NEXTCLOUD_SHARE_URL:-}
       NEXTCLOUD_POLL_MS: ${NEXTCLOUD_POLL_MS:-300000}
       NEXTCLOUD_TIMEOUT_MS: ${NEXTCLOUD_TIMEOUT_MS:-15000}
+      MUSESCORE_BIN: ${MUSESCORE_BIN:-/usr/bin/musescore3}
     volumes:
       - sheetplayer-data:/app/data
     restart: unless-stopped

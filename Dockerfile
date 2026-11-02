@@ -1,16 +1,21 @@
-FROM node:22-alpine AS build
+FROM node:22-trixie-slim AS build
 
 WORKDIR /app
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends musescore3 \
+  && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM node:22-alpine AS runtime
+FROM node:22-trixie-slim AS runtime
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
+ENV MUSESCORE_BIN=/usr/bin/musescore3
 WORKDIR /app
 
 COPY --from=build /app/build ./build
