@@ -6,7 +6,9 @@ export const defaultSettings: Settings = {
   voiceVolumes: {},
   emphasizedVoices: [],
   mutedVoices: [],
-  tempo: 100
+  tempo: 100,
+  globalAudioSource: "virtual",
+  voiceMixes: {}
 };
 
 export function isSettings(value: unknown): value is Settings {
@@ -15,6 +17,7 @@ export function isSettings(value: unknown): value is Settings {
   return typeof settings.tempo === "number"
     && settings.tempo >= 20
     && settings.tempo <= 300
+    && (settings.globalAudioSource === "virtual" || settings.globalAudioSource === "recorded")
     && !!settings.voiceVolumes
     && typeof settings.voiceVolumes === "object"
     && Object.values(settings.voiceVolumes).every((volume) => typeof volume === "number" && volume >= 0 && volume <= 1)

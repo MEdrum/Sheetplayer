@@ -24,6 +24,7 @@
     "vitest": "^2.1.8"
   },
   "dependencies": {
+    "@coderline/alphatab": "^1.9.0",
     "fast-xml-parser": "^4.5.0"
   }
 }

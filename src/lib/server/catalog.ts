@@ -19,7 +19,8 @@ export function scoreFromDavEntry(path: string, modifiedAt: string | null, size:
     path,
     format,
     modifiedAt,
-    size
+    size,
+    ready: format !== "mscz"
   };
 }
 

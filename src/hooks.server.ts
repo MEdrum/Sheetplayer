@@ -1,5 +1,8 @@
 import { randomBytes } from "node:crypto";
 import type { Handle } from "@sveltejs/kit";
+import { startCatalogPolling } from "$lib/server/catalog-state";
+
+startCatalogPolling();
 
 export const handle: Handle = async ({ event, resolve }) => {
   const existing = event.cookies.get("sheetplayer_session");
