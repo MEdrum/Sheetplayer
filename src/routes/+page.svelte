@@ -11,8 +11,27 @@
   let settings: Settings = data.initialSettings;
   let playing = false;
   let catalogLoaded = false;
+  let scoreHost: HTMLDivElement;
+  let renderer: { destroy?: () => void } | null = null;
+  let renderError = "";
+  const voices = ["soprano", "mezzo", "alto", "tenor", "bass"];
 
   $: visibleScores = scores.filter((score) => score.name.toLowerCase().includes(query.trim().toLowerCase()));
+
+  async function loadScore(score: Score) {
+    renderError = "";
+    selected = score;
+    try {
+      const { AlphaTabApi } = await import("@coderline/alphatab");
+      renderer?.destroy?.();
+      scoreHost.replaceChildren();
+      const api = new AlphaTabApi(scoreHost, { player: { enablePlayer: true, enableCursor: true } });
+      api.load(`/api/scores/${score.id}/musicxml`);
+      renderer = api;
+    } catch (error) {
+      renderError = error instanceof Error ? error.message : "The score could not be rendered.";
+    }
+  }
 
   async function loadCatalog() {
     try {
@@ -72,7 +91,7 @@
       <p class="muted">{scores.length ? "No matching scores." : "No scores are available."}</p>
     {:else}
       {#each visibleScores as score}
-        <button class:selected={selected?.id === score.id} class="score-item" type="button" on:click={() => (selected = score)}>
+        <button class:selected={selected?.id === score.id} class="score-item" type="button" on:click={() => loadScore(score)}>
           <span>{score.name}</span>
           <small>{score.format.toUpperCase()}{score.modifiedAt ? ` · ${new Date(score.modifiedAt).toLocaleDateString()}` : ""}</small>
         </button>
@@ -87,9 +106,9 @@
     </div>
     {#if selected}
       <div class="score">
-        <div class="staff"><span>𝄞</span><span class="notes">♩ ♪ ♫ ♩ ♫ ♪</span></div>
-        <p>{selected.format.toUpperCase()} · {selected.path}</p>
-        <p class="notice">Score rendering is client-side. Connect a MusicXML or MuseScore-compatible renderer to display notation.</p>
+        {#if renderError}<p class="error">{renderError}</p>{/if}
+        <div class="notation" bind:this={scoreHost}></div>
+        <p class="notice">{selected.format.toUpperCase()} · notation and lyrics are rendered client-side.</p>
       </div>
     {:else}
       <div class="empty">Select a score from the catalog to begin.</div>
@@ -97,6 +116,17 @@
     <div class="controls">
       <button type="button" disabled={!selected} on:click={() => (playing = !playing)}>{playing ? "❚❚ Pause" : "▶ Play"}</button>
       <label for="tempo">Tempo <input id="tempo" bind:value={settings.tempo} on:change={saveSettings} type="range" min="20" max="300" /><output>{settings.tempo} BPM</output></label>
+      <label for="audio-source">All voices
+        <select id="audio-source" bind:value={settings.globalAudioSource} on:change={saveSettings}>
+          <option value="virtual">Virtual instruments</option>
+          <option value="recorded">Recorded voices</option>
+        </select>
+      </label>
     </div>
+    <fieldset class="voice-mix"><legend>Voice audio</legend>
+      {#each voices as voice}
+        <label><span>{voice}</span><select bind:value={settings.voiceMixes[voice]} on:change={saveSettings}><option value="virtual">Virtual</option><option value="recorded">Recorded</option><option value="muted">Muted</option></select></label>
+      {/each}
+    </fieldset>
   </section>
 </main>
