@@ -13,10 +13,22 @@
   let playing = false;
   let catalogLoaded = false;
   let scoreHost: HTMLDivElement;
-  let renderer: { destroy?: () => void; play?: () => boolean; pause?: () => void } | null = null;
+  let renderer: import("@coderline/alphatab").AlphaTabApi | null = null;
   let renderError = "";
   let audioError = "";
   let audioEngine: RecordedVoiceEngine | null = null;
+  let loop = false;
+  let metronome = false;
+  let countIn = false;
+  let speed = 1;
+  let zoom = 1;
+  let follow = true;
+  let page = 1;
+  let totalPages = 1;
+  let position = "00:00.00";
+  let trackMutes: Record<number, boolean> = {};
+  let trackSolos: Record<number, boolean> = {};
+  let trackVolumes: Record<number, number> = {};
   const voices = ["soprano", "mezzo", "alto", "tenor", "bass"];
 
   $: visibleScores = scores.filter((score) => score.name.toLowerCase().includes(query.trim().toLowerCase()));
@@ -29,6 +41,18 @@
       renderer?.destroy?.();
       scoreHost.replaceChildren();
       const api = new AlphaTabApi(scoreHost, { player: { enablePlayer: true, enableCursor: true } });
+      api.scoreLoaded.on(() => {
+        totalPages = (api.renderer as unknown as { totalPages?: number })?.totalPages ?? 1;
+        page = 1;
+      });
+      api.playerPositionChanged.on((args) => {
+        const current = Math.floor(args.currentTime / 1000);
+        position = `${String(Math.floor(current / 60)).padStart(2, "0")}:${String(current % 60).padStart(2, "0")}.${String(Math.floor((args.currentTime % 1000) / 10)).padStart(2, "0")}`;
+        if (follow) {
+          const p = Math.min(totalPages, Math.max(1, Math.ceil((args.currentTick / Math.max(1, args.endTick)) * totalPages)));
+          if (p !== page) page = p;
+        }
+      });
       api.load(`/api/scores/${score.id}/musicxml`);
       renderer = api;
       audioEngine?.destroy();
@@ -48,6 +72,63 @@
 
     function sourceFor(voice: string): AudioSource {
       return settings.voiceMixes[voice] ?? settings.globalAudioSource;
+    }
+
+    function toggleLoop() {
+      loop = !loop;
+      if (renderer) renderer.isLooping = loop;
+    }
+
+    function toggleMetronome() {
+      metronome = !metronome;
+      if (renderer) renderer.metronomeVolume = metronome ? 1 : 0;
+    }
+
+    function toggleCountIn() {
+      countIn = !countIn;
+      if (renderer) renderer.countInVolume = countIn ? 1 : 0;
+    }
+
+    function setSpeed(value: number) {
+      speed = value;
+      if (renderer) renderer.playbackSpeed = value;
+    }
+
+    function setZoom(value: number) {
+      zoom = Math.min(2, Math.max(0.5, value));
+      if (renderer?.settings) {
+        renderer.settings.display.scale = zoom;
+        renderer.updateSettings();
+      }
+    }
+
+    function setPage(value: number) {
+      page = Math.min(totalPages, Math.max(1, value));
+      const facade = renderer?.uiFacade as unknown as { getScrollElement?: () => { scrollHeight?: number }; scrollToY?: (el: unknown, offset: number, speed: number) => void };
+      const scroll = facade?.getScrollElement?.();
+      if (scroll) {
+        const height = scroll.scrollHeight ?? 0;
+        facade?.scrollToY?.(scroll, ((page - 1) * height) / Math.max(1, totalPages), 0);
+      }
+    }
+
+    function toggleFollow() {
+      follow = !follow;
+    }
+
+    function setTrackMute(index: number, mute: boolean) {
+      trackMutes[index] = mute;
+      if (renderer?.score?.tracks?.[index]) renderer.changeTrackMute([renderer.score.tracks[index]], mute);
+    }
+
+    function setTrackSolo(index: number, solo: boolean) {
+      trackSolos[index] = solo;
+      if (renderer?.score?.tracks?.[index]) renderer.changeTrackSolo([renderer.score.tracks[index]], solo);
+    }
+
+    function setTrackVolume(index: number, volume: number) {
+      trackVolumes[index] = volume;
+      if (renderer?.score?.tracks?.[index]) renderer.changeTrackVolume([renderer.score.tracks[index]], volume);
     }
 
     async function togglePlayback() {
@@ -152,6 +233,14 @@
     {/if}
     <div class="controls">
       <button type="button" disabled={!selected} on:click={togglePlayback}>{playing ? "❚❚ Pause" : "▶ Play"}</button>
+      <button type="button" disabled={!selected} on:click={() => { renderer?.stop?.(); audioEngine?.stop(); playing = false; }}>⏹ Stop</button>
+      <button class:active={loop} type="button" disabled={!selected} on:click={toggleLoop}>🔁 Loop</button>
+      <button class:active={metronome} type="button" disabled={!selected} on:click={toggleMetronome}>Klick</button>
+      <button class:active={countIn} type="button" disabled={!selected} on:click={toggleCountIn}>Vorzähler</button>
+      <label>Speed <select value={speed} on:change={(event) => setSpeed(Number(event.currentTarget.value))}><option value="0.5">0.5x</option><option value="0.75">0.75x</option><option value="1">1x</option><option value="1.5">1.5x</option><option value="2">2x</option></select></label>
+      <label>Zoom <input type="range" min="0.5" max="2" step="0.1" value={zoom} on:input={(event) => setZoom(Number(event.currentTarget.value))} /><output>{Math.round(zoom * 100)}%</output></label>
+      <button class:active={follow} type="button" on:click={toggleFollow}>Folgen</button>
+      <span class="position">{position}</span>
       <label for="tempo">Tempo <input id="tempo" bind:value={settings.tempo} on:change={saveSettings} type="range" min="20" max="300" /><output>{settings.tempo} BPM</output></label>
       <label for="audio-source">All voices
         <select id="audio-source" bind:value={settings.globalAudioSource} on:change={saveSettings}>
@@ -160,6 +249,25 @@
         </select>
       </label>
     </div>
+    {#if selected}
+      <div class="page-nav">
+        <button type="button" disabled={page <= 1} on:click={() => setPage(page - 1)}>‹ Vorherige</button>
+        <span>{page} / {totalPages}</span>
+        <button type="button" disabled={page >= totalPages} on:click={() => setPage(page + 1)}>Nächste ›</button>
+      </div>
+    {/if}
+    {#if selected && renderer?.score?.tracks?.length}
+      <fieldset class="track-mix"><legend>Spuren</legend>
+        {#each renderer.score.tracks as track, index}
+          <div class="track-row">
+            <span>{track.name}</span>
+            <button class:active={trackMutes[index]} type="button" on:click={() => setTrackMute(index, !trackMutes[index])}>M</button>
+            <button class:active={trackSolos[index]} type="button" on:click={() => setTrackSolo(index, !trackSolos[index])}>S</button>
+            <input type="range" min="0" max="1" step="0.05" value={trackVolumes[index] ?? 1} on:input={(event) => setTrackVolume(index, Number(event.currentTarget.value))} />
+          </div>
+        {/each}
+      </fieldset>
+    {/if}
     <fieldset class="voice-mix"><legend>Voice audio</legend>
       {#each voices as voice}
         <label><span>{voice}</span><select bind:value={settings.voiceMixes[voice]} on:change={saveSettings}><option value="virtual">Virtual</option><option value="recorded">Recorded</option><option value="muted">Muted</option></select></label>
