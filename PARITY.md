@@ -12,7 +12,7 @@ This matrix distinguishes implemented behavior from work that remains before the
 | Standard notation rendering | Implemented | AlphaTab renders MusicXML staff notation in the browser. |
 | Lyrics under notes | Implemented by renderer | MusicXML lyrics are passed through to AlphaTab; representative choir fixture coverage remains. |
 | Virtual-instrument playback and cursor | Partially implemented | AlphaTab supplies the browser synth/player and cursor; dedicated UI synchronization tests remain. |
-| Recorded voice tracks | Not implemented | Requires recorded voice assets and score-aligned timing metadata. |
+| Recorded voice tracks | Partially implemented | Optional sibling voice stems are discovered through the score API and scheduled on one Web Audio clock; actual tracks and alignment metadata must exist in the share. |
 | Metronome, looping, rehearsal, parts, transpose, zoom, layout, and display controls | Partial | AlphaTab supports several primitives, but dedicated application controls and regression coverage remain. |
 | Keyboard, touch, fullscreen, focus, and accessibility states | Partial | Fullscreen, responsive layout, focusable controls, and mobile overflow are covered; score-specific interactions remain. |
 | Cross-device settings synchronization | Intentionally deferred | Requires approval of pairing, recovery, revocation, conflict, and offline behavior. |

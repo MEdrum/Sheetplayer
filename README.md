@@ -35,6 +35,7 @@ The production image includes MuseScore 3 for server-side MSCZ-to-MusicXML conve
 - Settings are stored as mode-0600 JSON files under `DATA_DIR` and retained until the user chooses **Clear data**.
 - The browser owns score selection and player state; the server only provides metadata and settings.
 - AlphaTab renders standard staff notation and MusicXML lyrics in the browser. The server exposes MusicXML directly, extracts MXL archives, and converts MSCZ with the configured MuseScore executable.
+- Optional recorded stems are requested as sibling files such as `Song.soprano.wav`, `Song.mezzo.mp3`, or `Song.bass.ogg`. They are decoded and started from one Web Audio clock; missing stems fall back to virtual playback for that voice.
 - The app includes a web manifest, installable icon, and service worker shell cache for PWA installation.
 
 ## Commands
